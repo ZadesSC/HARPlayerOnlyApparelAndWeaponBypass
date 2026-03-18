@@ -30,21 +30,39 @@ namespace PlayerOnlyApparelBypass
             var listing = new Listing_Standard();
             listing.Begin(inRect);
 
-            bool defaultBypassEnabled = Settings != null && Settings.defaultBypassEnabled;
+            bool defaultApparelBypassEnabled = Settings != null && Settings.defaultApparelBypassEnabled;
             listing.CheckboxLabeled(
                 "New player colonists bypass HAR apparel restrictions by default",
-                ref defaultBypassEnabled,
+                ref defaultApparelBypassEnabled,
                 "This becomes the initial behavior for player-controlled colonists when they are first managed by the mod.");
-            Settings.defaultBypassEnabled = defaultBypassEnabled;
+            Settings.defaultApparelBypassEnabled = defaultApparelBypassEnabled;
 
             listing.Gap();
 
-            bool showPawnGizmo = Settings == null || Settings.showPawnGizmo;
+            bool showApparelGizmo = Settings == null || Settings.showApparelGizmo;
             listing.CheckboxLabeled(
                 "Show per-pawn HAR apparel bypass gizmo",
-                ref showPawnGizmo,
+                ref showApparelGizmo,
                 "Adds a toggle gizmo to selected player-controlled colonists so each pawn can individually follow or ignore HAR apparel restrictions.");
-            Settings.showPawnGizmo = showPawnGizmo;
+            Settings.showApparelGizmo = showApparelGizmo;
+
+            listing.Gap();
+
+            bool defaultWeaponBypassEnabled = Settings != null && Settings.defaultWeaponBypassEnabled;
+            listing.CheckboxLabeled(
+                "New player colonists bypass HAR weapon restrictions by default",
+                ref defaultWeaponBypassEnabled,
+                "This becomes the initial weapon behavior for player-controlled colonists when they are first managed by the mod.");
+            Settings.defaultWeaponBypassEnabled = defaultWeaponBypassEnabled;
+
+            listing.Gap();
+
+            bool showWeaponGizmo = Settings == null || Settings.showWeaponGizmo;
+            listing.CheckboxLabeled(
+                "Show per-pawn HAR weapon bypass gizmo",
+                ref showWeaponGizmo,
+                "Adds a separate toggle gizmo to selected player-controlled colonists so each pawn can individually follow or ignore HAR weapon restrictions.");
+            Settings.showWeaponGizmo = showWeaponGizmo;
 
             listing.End();
         }
@@ -52,21 +70,32 @@ namespace PlayerOnlyApparelBypass
 
     public sealed class PlayerOnlyApparelBypassSettings : ModSettings
     {
-        public bool defaultBypassEnabled = true;
-        public bool showPawnGizmo = true;
+        public bool defaultApparelBypassEnabled = true;
+        public bool showApparelGizmo = true;
+        public bool defaultWeaponBypassEnabled = false;
+        public bool showWeaponGizmo = true;
 
         public override void ExposeData()
         {
-            Scribe_Values.Look(ref defaultBypassEnabled, "defaultBypassEnabled", true);
-            Scribe_Values.Look(ref showPawnGizmo, "showPawnGizmo", true);
+            Scribe_Values.Look(ref defaultApparelBypassEnabled, "defaultBypassEnabled", defaultApparelBypassEnabled);
+            Scribe_Values.Look(ref defaultApparelBypassEnabled, "defaultApparelBypassEnabled", defaultApparelBypassEnabled);
+            Scribe_Values.Look(ref showApparelGizmo, "showPawnGizmo", showApparelGizmo);
+            Scribe_Values.Look(ref showApparelGizmo, "showApparelGizmo", showApparelGizmo);
+            Scribe_Values.Look(ref defaultWeaponBypassEnabled, "defaultWeaponBypassEnabled", false);
+            Scribe_Values.Look(ref showWeaponGizmo, "showWeaponGizmo", true);
         }
     }
 
     public sealed class PawnBypassStateComponent : GameComponent
     {
-        private Dictionary<int, bool> pawnBypassStates = new Dictionary<int, bool>();
-        private List<int> pawnStateKeys;
-        private List<bool> pawnStateValues;
+        private Dictionary<int, bool> apparelBypassStates = new Dictionary<int, bool>();
+        private Dictionary<int, bool> weaponBypassStates = new Dictionary<int, bool>();
+        private List<int> apparelStateKeys;
+        private List<bool> apparelStateValues;
+        private List<int> weaponStateKeys;
+        private List<bool> weaponStateValues;
+        private List<int> legacyStateKeys;
+        private List<bool> legacyStateValues;
 
         public PawnBypassStateComponent(Game game)
         {
@@ -74,21 +103,47 @@ namespace PlayerOnlyApparelBypass
 
         public override void ExposeData()
         {
+            Dictionary<int, bool> legacyPawnBypassStates = null;
             Scribe_Collections.Look(
-                ref pawnBypassStates,
+                ref legacyPawnBypassStates,
                 "pawnBypassStates",
                 LookMode.Value,
                 LookMode.Value,
-                ref pawnStateKeys,
-                ref pawnStateValues);
+                ref legacyStateKeys,
+                ref legacyStateValues);
+            Scribe_Collections.Look(
+                ref apparelBypassStates,
+                "apparelBypassStates",
+                LookMode.Value,
+                LookMode.Value,
+                ref apparelStateKeys,
+                ref apparelStateValues);
+            Scribe_Collections.Look(
+                ref weaponBypassStates,
+                "weaponBypassStates",
+                LookMode.Value,
+                LookMode.Value,
+                ref weaponStateKeys,
+                ref weaponStateValues);
 
-            if (pawnBypassStates == null)
+            if (apparelBypassStates == null)
             {
-                pawnBypassStates = new Dictionary<int, bool>();
+                apparelBypassStates = new Dictionary<int, bool>();
+            }
+            if (weaponBypassStates == null)
+            {
+                weaponBypassStates = new Dictionary<int, bool>();
+            }
+
+            if ((apparelBypassStates == null || apparelBypassStates.Count == 0) &&
+                legacyPawnBypassStates != null &&
+                legacyPawnBypassStates.Count > 0)
+            {
+                apparelBypassStates = new Dictionary<int, bool>(legacyPawnBypassStates);
             }
         }
 
-        public bool IsBypassEnabled(Pawn pawn)
+        public bool IsApparelBypassEnabled(Pawn pawn)
         {
             if (!Helpers.IsEligiblePawn(pawn))
             {
@@ -96,23 +151,50 @@ namespace PlayerOnlyApparelBypass
             }
 
             bool enabled;
-            if (!pawnBypassStates.TryGetValue(pawn.thingIDNumber, out enabled))
+            if (!apparelBypassStates.TryGetValue(pawn.thingIDNumber, out enabled))
             {
-                enabled = Helpers.DefaultBypassEnabled;
-                pawnBypassStates[pawn.thingIDNumber] = enabled;
+                enabled = Helpers.DefaultApparelBypassEnabled;
+                apparelBypassStates[pawn.thingIDNumber] = enabled;
             }
 
             return enabled;
         }
 
-        public void SetBypassEnabled(Pawn pawn, bool enabled)
+        public bool IsWeaponBypassEnabled(Pawn pawn)
+        {
+            if (!Helpers.IsEligiblePawn(pawn))
+            {
+                return false;
+            }
+
+            bool enabled;
+            if (!weaponBypassStates.TryGetValue(pawn.thingIDNumber, out enabled))
+            {
+                enabled = Helpers.DefaultWeaponBypassEnabled;
+                weaponBypassStates[pawn.thingIDNumber] = enabled;
+            }
+
+            return enabled;
+        }
+
+        public void SetApparelBypassEnabled(Pawn pawn, bool enabled)
         {
             if (!Helpers.IsEligiblePawn(pawn))
             {
                 return;
             }
 
-            pawnBypassStates[pawn.thingIDNumber] = enabled;
+            apparelBypassStates[pawn.thingIDNumber] = enabled;
+        }
+
+        public void SetWeaponBypassEnabled(Pawn pawn, bool enabled)
+        {
+            if (!Helpers.IsEligiblePawn(pawn))
+            {
+                return;
+            }
+
+            weaponBypassStates[pawn.thingIDNumber] = enabled;
         }
     }
 
@@ -349,7 +431,7 @@ namespace PlayerOnlyApparelBypass
 
         public static bool ApparelScoreGainPostFixPrefix(Pawn pawn)
         {
-            return !Helpers.IsManagedPawn(pawn);
+            return !Helpers.IsApparelManagedPawn(pawn);
         }
 
         public static void HasPartsToWearPostfix(Pawn p, ThingDef apparel, ref bool __result)
@@ -370,7 +452,7 @@ namespace PlayerOnlyApparelBypass
 
         public static void CanEquipPostfix(Thing thing, Pawn pawn, ref string cantReason, bool checkBonded, ref bool __result)
         {
-            if (__result || !Helpers.ShouldBypassApparelChecks(pawn, thing != null ? thing.def : null))
+            if (__result || !Helpers.ShouldBypassWeaponChecks(pawn, thing != null ? thing.def : null))
             {
                 return;
             }
@@ -392,7 +474,7 @@ namespace PlayerOnlyApparelBypass
 
         public static bool TryGiveJobPrefix(JobGiver_OptimizeApparel __instance, Pawn pawn, ref Job __result)
         {
-            if (!Helpers.IsManagedPawn(pawn))
+            if (!Helpers.IsApparelManagedPawn(pawn))
             {
                 return true;
             }
@@ -403,30 +485,38 @@ namespace PlayerOnlyApparelBypass
 
         public static void PawnGetGizmosPostfix(Pawn __instance, ref IEnumerable<Gizmo> __result)
         {
-            if (!Helpers.ShouldShowPawnGizmo(__instance))
+            if (!Helpers.IsEligiblePawn(__instance) || __instance.Spawned == false)
             {
                 return;
             }
 
-            __result = Helpers.AppendGizmo(__result, Helpers.MakePawnBypassGizmo(__instance));
+            if (Helpers.ShouldShowApparelGizmo(__instance))
+            {
+                __result = Helpers.AppendGizmo(__result, Helpers.MakeApparelBypassGizmo(__instance));
+            }
+
+            if (Helpers.ShouldShowWeaponGizmo(__instance))
+            {
+                __result = Helpers.AppendGizmo(__result, Helpers.MakeWeaponBypassGizmo(__instance));
+            }
         }
     }
 
     internal static class Helpers
     {
-        internal static bool DefaultBypassEnabled
+        internal static bool DefaultApparelBypassEnabled
         {
             get
             {
-                return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.defaultBypassEnabled;
+                return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.defaultApparelBypassEnabled;
             }
         }
 
-        private static bool ShowPawnGizmoSetting
+        internal static bool DefaultWeaponBypassEnabled
         {
             get
             {
-                return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.showPawnGizmo;
+                return PlayerOnlyApparelBypassMod.Settings != null && PlayerOnlyApparelBypassMod.Settings.defaultWeaponBypassEnabled;
             }
         }
 
@@ -435,22 +525,37 @@ namespace PlayerOnlyApparelBypass
             return pawn != null && pawn.IsColonistPlayerControlled;
         }
 
-        internal static bool IsManagedPawn(Pawn pawn)
+        internal static bool IsApparelManagedPawn(Pawn pawn)
         {
-            return IsEligiblePawn(pawn) && GetBypassEnabled(pawn);
+            return IsEligiblePawn(pawn) && GetApparelBypassEnabled(pawn);
+        }
+
+        internal static bool IsWeaponManagedPawn(Pawn pawn)
+        {
+            return IsEligiblePawn(pawn) && GetWeaponBypassEnabled(pawn);
         }
 
         internal static bool ShouldBypassApparelChecks(Pawn pawn, ThingDef thingDef)
         {
-            return IsManagedPawn(pawn) && thingDef != null && thingDef.IsApparel;
+            return IsApparelManagedPawn(pawn) && thingDef != null && thingDef.IsApparel;
         }
 
-        internal static bool ShouldShowPawnGizmo(Pawn pawn)
+        internal static bool ShouldBypassWeaponChecks(Pawn pawn, ThingDef thingDef)
         {
-            return ShowPawnGizmoSetting && pawn != null && pawn.Spawned && IsEligiblePawn(pawn);
+            return IsWeaponManagedPawn(pawn) && thingDef != null && thingDef.IsWeapon;
         }
 
-        internal static bool GetBypassEnabled(Pawn pawn)
+        internal static bool ShouldShowApparelGizmo(Pawn pawn)
+        {
+            return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.showApparelGizmo;
+        }
+
+        internal static bool ShouldShowWeaponGizmo(Pawn pawn)
+        {
+            return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.showWeaponGizmo;
+        }
+
+        internal static bool GetApparelBypassEnabled(Pawn pawn)
         {
             if (!IsEligiblePawn(pawn))
             {
@@ -462,11 +567,27 @@ namespace PlayerOnlyApparelBypass
                 : null;
 
             return stateComponent != null
-                ? stateComponent.IsBypassEnabled(pawn)
-                : DefaultBypassEnabled;
+                ? stateComponent.IsApparelBypassEnabled(pawn)
+                : DefaultApparelBypassEnabled;
         }
 
-        internal static void SetBypassEnabled(Pawn pawn, bool enabled)
+        internal static bool GetWeaponBypassEnabled(Pawn pawn)
+        {
+            if (!IsEligiblePawn(pawn))
+            {
+                return false;
+            }
+
+            PawnBypassStateComponent stateComponent = Current.Game != null
+                ? Current.Game.GetComponent<PawnBypassStateComponent>()
+                : null;
+
+            return stateComponent != null
+                ? stateComponent.IsWeaponBypassEnabled(pawn)
+                : DefaultWeaponBypassEnabled;
+        }
+
+        internal static void SetApparelBypassEnabled(Pawn pawn, bool enabled)
         {
             if (!IsEligiblePawn(pawn) || Current.Game == null)
             {
@@ -476,7 +597,21 @@ namespace PlayerOnlyApparelBypass
             PawnBypassStateComponent stateComponent = Current.Game.GetComponent<PawnBypassStateComponent>();
             if (stateComponent != null)
             {
-                stateComponent.SetBypassEnabled(pawn, enabled);
+                stateComponent.SetApparelBypassEnabled(pawn, enabled);
+            }
+        }
+
+        internal static void SetWeaponBypassEnabled(Pawn pawn, bool enabled)
+        {
+            if (!IsEligiblePawn(pawn) || Current.Game == null)
+            {
+                return;
+            }
+
+            PawnBypassStateComponent stateComponent = Current.Game.GetComponent<PawnBypassStateComponent>();
+            if (stateComponent != null)
+            {
+                stateComponent.SetWeaponBypassEnabled(pawn, enabled);
             }
         }
 
@@ -496,31 +631,59 @@ namespace PlayerOnlyApparelBypass
             }
         }
 
-        internal static Gizmo MakePawnBypassGizmo(Pawn pawn)
+        internal static Gizmo MakeApparelBypassGizmo(Pawn pawn)
         {
             return new Command_Toggle
             {
                 defaultLabel = "HAR apparel bypass",
-                defaultDesc = BuildPawnGizmoDescription(pawn),
+                defaultDesc = BuildApparelGizmoDescription(pawn),
                 icon = TexCommand.DesirePower,
                 isActive = delegate
                 {
-                    return GetBypassEnabled(pawn);
+                    return GetApparelBypassEnabled(pawn);
                 },
                 toggleAction = delegate
                 {
-                    bool enabled = !GetBypassEnabled(pawn);
-                    SetBypassEnabled(pawn, enabled);
+                    bool enabled = !GetApparelBypassEnabled(pawn);
+                    SetApparelBypassEnabled(pawn, enabled);
                 }
             };
         }
 
-        private static string BuildPawnGizmoDescription(Pawn pawn)
+        internal static Gizmo MakeWeaponBypassGizmo(Pawn pawn)
         {
-            bool enabled = GetBypassEnabled(pawn);
+            return new Command_Toggle
+            {
+                defaultLabel = "HAR weapon bypass",
+                defaultDesc = BuildWeaponGizmoDescription(pawn),
+                icon = TexCommand.DesirePower,
+                isActive = delegate
+                {
+                    return GetWeaponBypassEnabled(pawn);
+                },
+                toggleAction = delegate
+                {
+                    bool enabled = !GetWeaponBypassEnabled(pawn);
+                    SetWeaponBypassEnabled(pawn, enabled);
+                }
+            };
+        }
+
+        private static string BuildApparelGizmoDescription(Pawn pawn)
+        {
+            bool enabled = GetApparelBypassEnabled(pawn);
             string currentState = enabled ? "enabled" : "disabled";
-            string defaultState = DefaultBypassEnabled ? "enabled" : "disabled";
+            string defaultState = DefaultApparelBypassEnabled ? "enabled" : "disabled";
             return "Toggle whether this pawn ignores HAR race apparel restrictions. Current state: " +
+                currentState + ". Default for newly managed player colonists: " + defaultState + ".";
+        }
+
+        private static string BuildWeaponGizmoDescription(Pawn pawn)
+        {
+            bool enabled = GetWeaponBypassEnabled(pawn);
+            string currentState = enabled ? "enabled" : "disabled";
+            string defaultState = DefaultWeaponBypassEnabled ? "enabled" : "disabled";
+            return "Toggle whether this pawn ignores HAR race weapon restrictions. Current state: " +
                 currentState + ". Default for newly managed player colonists: " + defaultState + ".";
         }
 
@@ -555,7 +718,7 @@ namespace PlayerOnlyApparelBypass
     {
         public static bool Prefix(Pawn pawn)
         {
-            return !Helpers.IsManagedPawn(pawn);
+            return !Helpers.IsApparelManagedPawn(pawn);
         }
     }
 
