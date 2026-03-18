@@ -6,7 +6,7 @@
     <li>1.6</li>
   </supportedVersions>
   <packageId>local.playeronlyapparelbypass</packageId>
-  <description>Lets player-controlled colonists ignore HAR apparel race restrictions for outfit optimization and manual wear orders, while leaving NPC apparel generation unchanged.</description>
+  <description>Lets player-controlled colonists ignore HAR apparel race restrictions on a per-pawn basis for outfit optimization and wear checks. Includes a default behavior setting for newly managed colonists and an optional pawn gizmo to toggle bypass on or off per colonist, while leaving NPC apparel generation unchanged.</description>
   <modDependencies>
     <li>
       <packageId>erdelf.HumanoidAlienRaces</packageId>
