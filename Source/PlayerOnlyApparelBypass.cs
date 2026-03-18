@@ -746,6 +746,14 @@ namespace PlayerOnlyApparelBypass
 
     public static class ManagedApparelOptimizer
     {
+        private static void SetNextOptimizeTick(Pawn pawn)
+        {
+            if (pawn != null && pawn.mindState != null)
+            {
+                pawn.mindState.nextApparelOptimizeTick = Find.TickManager.TicksGame + Rand.Range(6000, 9000);
+            }
+        }
+
         public static Job TryGiveManagedJob(Pawn pawn)
         {
             if (pawn == null || pawn.outfits == null)
@@ -872,6 +880,7 @@ namespace PlayerOnlyApparelBypass
 
             if (best == null)
             {
+                SetNextOptimizeTick(pawn);
                 return null;
             }
 
