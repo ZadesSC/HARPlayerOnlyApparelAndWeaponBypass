@@ -452,7 +452,16 @@ namespace PlayerOnlyApparelBypass
 
         public static void CanEquipPostfix(Thing thing, Pawn pawn, ref string cantReason, bool checkBonded, ref bool __result)
         {
-            if (__result || !Helpers.ShouldBypassWeaponChecks(pawn, thing != null ? thing.def : null))
+            ThingDef thingDef = thing != null ? thing.def : null;
+            bool bypassApparel = Helpers.ShouldBypassApparelChecks(pawn, thingDef);
+            bool bypassWeapon = Helpers.ShouldBypassWeaponChecks(pawn, thingDef);
+            if (__result || (!bypassApparel && !bypassWeapon))
+            {
+                return;
+            }
+
+            CompBladelinkWeapon bladelinkComp = thing != null ? thing.TryGetComp<CompBladelinkWeapon>() : null;
+            if (bladelinkComp != null && bladelinkComp.Biocodable && bladelinkComp.CodedPawn != null && bladelinkComp.CodedPawn != pawn)
             {
                 return;
             }
@@ -462,8 +471,21 @@ namespace PlayerOnlyApparelBypass
                 return;
             }
 
+            if (checkBonded && EquipmentUtility.AlreadyBondedToWeapon(thing, pawn))
+            {
+                return;
+            }
+
             string ignoredReason = null;
             if (EquipmentUtility.RolePreventsFromUsing(pawn, thing, out ignoredReason))
+            {
+                return;
+            }
+
+            if (bypassApparel &&
+                thingDef != null &&
+                thingDef.apparel != null &&
+                !thingDef.apparel.developmentalStageFilter.Has(pawn.DevelopmentalStage))
             {
                 return;
             }
