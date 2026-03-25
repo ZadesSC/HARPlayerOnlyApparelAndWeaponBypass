@@ -261,23 +261,16 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                     "HarPawnCanWearPostfixPrefix",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
                     typeof(Pawn));
-                MethodInfo canEquipMethod = GetRequiredMethod(
-                    typeof(EquipmentUtility),
-                    "CanEquip",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Thing),
-                    typeof(Pawn),
-                    typeof(string).MakeByRefType(),
-                    typeof(bool));
-                MethodInfo ourCanEquipPostfix = GetRequiredMethod(
-                    patchType,
+                MethodInfo harCanEquipPostfixMethod = GetRequiredNamedMethod(
+                    typeof(HarmonyPatches),
                     "CanEquipPostfix",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                MethodInfo ourHarCanEquipPostfixPrefix = GetRequiredMethod(
+                    patchType,
+                    "HarCanEquipPostfixPrefix",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
                     typeof(Thing),
-                    typeof(Pawn),
-                    typeof(string).MakeByRefType(),
-                    typeof(bool),
-                    typeof(bool).MakeByRefType());
+                    typeof(Pawn));
                 MethodInfo pawnGetGizmosMethod = GetRequiredMethod(
                     typeof(Pawn),
                     "GetGizmos",
@@ -316,9 +309,9 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                 PatchMethod(
                     harmony,
                     patchMethod,
-                    canEquipMethod,
-                    prefix: null,
-                    postfix: harmonyMethodCtor.Invoke(new object[] { ourCanEquipPostfix }),
+                    harCanEquipPostfixMethod,
+                    prefix: harmonyMethodCtor.Invoke(new object[] { ourHarCanEquipPostfixPrefix }),
+                    postfix: null,
                     transpiler: null,
                     finalizer: null);
                 PatchMethod(
@@ -430,48 +423,11 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             }
         }
 
-        public static void CanEquipPostfix(Thing thing, Pawn pawn, ref string cantReason, bool checkBonded, ref bool __result)
+        public static bool HarCanEquipPostfixPrefix(Thing thing, Pawn pawn)
         {
             ThingDef thingDef = thing != null ? thing.def : null;
-            bool bypassApparel = Helpers.ShouldBypassApparelChecks(pawn, thingDef);
-            bool bypassWeapon = Helpers.ShouldBypassWeaponChecks(pawn, thingDef);
-            if (__result || (!bypassApparel && !bypassWeapon))
-            {
-                return;
-            }
-
-            CompBladelinkWeapon bladelinkComp = thing != null ? thing.TryGetComp<CompBladelinkWeapon>() : null;
-            if (bladelinkComp != null && bladelinkComp.Biocodable && bladelinkComp.CodedPawn != null && bladelinkComp.CodedPawn != pawn)
-            {
-                return;
-            }
-
-            if (CompBiocodable.IsBiocoded(thing) && !CompBiocodable.IsBiocodedFor(thing, pawn))
-            {
-                return;
-            }
-
-            if (checkBonded && EquipmentUtility.AlreadyBondedToWeapon(thing, pawn))
-            {
-                return;
-            }
-
-            string ignoredReason = null;
-            if (EquipmentUtility.RolePreventsFromUsing(pawn, thing, out ignoredReason))
-            {
-                return;
-            }
-
-            if (bypassApparel &&
-                thingDef != null &&
-                thingDef.apparel != null &&
-                !thingDef.apparel.developmentalStageFilter.Has(pawn.DevelopmentalStage))
-            {
-                return;
-            }
-
-            cantReason = null;
-            __result = true;
+            return !Helpers.ShouldBypassApparelChecks(pawn, thingDef) &&
+                !Helpers.ShouldBypassWeaponChecks(pawn, thingDef);
         }
 
         public static void PawnGetGizmosPostfix(Pawn __instance, ref IEnumerable<Gizmo> __result)
