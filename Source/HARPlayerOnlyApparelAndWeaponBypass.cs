@@ -25,42 +25,43 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
+            HARPlayerOnlyApparelAndWeaponBypassSettings settings = Settings;
             var listing = new Listing_Standard();
             listing.Begin(inRect);
 
-            bool defaultApparelBypassEnabled = Settings != null && Settings.defaultApparelBypassEnabled;
+            bool defaultApparelBypassEnabled = settings.defaultApparelBypassEnabled;
             listing.CheckboxLabeled(
                 "New player colonists bypass HAR apparel restrictions by default",
                 ref defaultApparelBypassEnabled,
                 "This becomes the initial behavior for player-controlled colonists when they are first managed by the mod.");
-            Settings.defaultApparelBypassEnabled = defaultApparelBypassEnabled;
+            settings.defaultApparelBypassEnabled = defaultApparelBypassEnabled;
 
             listing.Gap();
 
-            bool showApparelGizmo = Settings == null || Settings.showApparelGizmo;
+            bool showApparelGizmo = settings.showApparelGizmo;
             listing.CheckboxLabeled(
                 "Show per-pawn HAR apparel bypass gizmo",
                 ref showApparelGizmo,
                 "Adds a toggle gizmo to selected player-controlled colonists so each pawn can individually follow or ignore HAR apparel restrictions.");
-            Settings.showApparelGizmo = showApparelGizmo;
+            settings.showApparelGizmo = showApparelGizmo;
 
             listing.Gap();
 
-            bool defaultWeaponBypassEnabled = Settings != null && Settings.defaultWeaponBypassEnabled;
+            bool defaultWeaponBypassEnabled = settings.defaultWeaponBypassEnabled;
             listing.CheckboxLabeled(
                 "New player colonists bypass HAR weapon restrictions by default",
                 ref defaultWeaponBypassEnabled,
                 "This becomes the initial weapon behavior for player-controlled colonists when they are first managed by the mod.");
-            Settings.defaultWeaponBypassEnabled = defaultWeaponBypassEnabled;
+            settings.defaultWeaponBypassEnabled = defaultWeaponBypassEnabled;
 
             listing.Gap();
 
-            bool showWeaponGizmo = Settings == null || Settings.showWeaponGizmo;
+            bool showWeaponGizmo = settings.showWeaponGizmo;
             listing.CheckboxLabeled(
                 "Show per-pawn HAR weapon bypass gizmo",
                 ref showWeaponGizmo,
                 "Adds a separate toggle gizmo to selected player-controlled colonists so each pawn can individually follow or ignore HAR weapon restrictions.");
-            Settings.showWeaponGizmo = showWeaponGizmo;
+            settings.showWeaponGizmo = showWeaponGizmo;
 
             listing.End();
         }
@@ -92,8 +93,6 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
         private List<bool> apparelStateValues;
         private List<int> weaponStateKeys;
         private List<bool> weaponStateValues;
-        private List<int> legacyStateKeys;
-        private List<bool> legacyStateValues;
 
         public PawnBypassStateComponent(Game game)
         {
@@ -101,14 +100,6 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
         public override void ExposeData()
         {
-            Dictionary<int, bool> legacyPawnBypassStates = null;
-            Scribe_Collections.Look(
-                ref legacyPawnBypassStates,
-                "pawnBypassStates",
-                LookMode.Value,
-                LookMode.Value,
-                ref legacyStateKeys,
-                ref legacyStateValues);
             Scribe_Collections.Look(
                 ref apparelBypassStates,
                 "apparelBypassStates",
@@ -131,13 +122,6 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             if (weaponBypassStates == null)
             {
                 weaponBypassStates = new Dictionary<int, bool>();
-            }
-
-            if ((apparelBypassStates == null || apparelBypassStates.Count == 0) &&
-                legacyPawnBypassStates != null &&
-                legacyPawnBypassStates.Count > 0)
-            {
-                apparelBypassStates = new Dictionary<int, bool>(legacyPawnBypassStates);
             }
         }
 
@@ -219,7 +203,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
     {
         private static MethodBase TargetMethod()
         {
-                return AccessTools.Method(
+            return AccessTools.Method(
                 typeof(AlienRace.HarmonyPatches),
                 "ApparelScoreGainPostFix",
                 new[] { typeof(Pawn), typeof(Apparel), typeof(float).MakeByRefType() });
@@ -278,8 +262,22 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
         private static bool Prefix(Thing thing, Pawn pawn)
         {
             ThingDef thingDef = thing != null ? thing.def : null;
-            return !Helpers.ShouldBypassApparelChecks(pawn, thingDef) &&
-                !Helpers.ShouldBypassWeaponChecks(pawn, thingDef);
+            if (thingDef == null)
+            {
+                return true;
+            }
+
+            if (thingDef.IsApparel)
+            {
+                return !Helpers.IsApparelManagedPawn(pawn);
+            }
+
+            if (thingDef.IsWeapon)
+            {
+                return !Helpers.IsWeaponManagedPawn(pawn);
+            }
+
+            return true;
         }
     }
 
@@ -341,12 +339,12 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
         internal static bool ShouldBypassApparelChecks(Pawn pawn, ThingDef thingDef)
         {
-            return IsApparelManagedPawn(pawn) && thingDef != null && thingDef.IsApparel;
+            return thingDef != null && thingDef.IsApparel && IsApparelManagedPawn(pawn);
         }
 
         internal static bool ShouldBypassWeaponChecks(Pawn pawn, ThingDef thingDef)
         {
-            return IsWeaponManagedPawn(pawn) && thingDef != null && thingDef.IsWeapon;
+            return thingDef != null && thingDef.IsWeapon && IsWeaponManagedPawn(pawn);
         }
 
         internal static bool ShouldShowApparelGizmo()
@@ -366,9 +364,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                 return false;
             }
 
-            PawnBypassStateComponent stateComponent = Current.Game != null
-                ? Current.Game.GetComponent<PawnBypassStateComponent>()
-                : null;
+            PawnBypassStateComponent stateComponent = GetStateComponent();
 
             return stateComponent != null
                 ? stateComponent.IsApparelBypassEnabled(pawn)
@@ -382,9 +378,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                 return false;
             }
 
-            PawnBypassStateComponent stateComponent = Current.Game != null
-                ? Current.Game.GetComponent<PawnBypassStateComponent>()
-                : null;
+            PawnBypassStateComponent stateComponent = GetStateComponent();
 
             return stateComponent != null
                 ? stateComponent.IsWeaponBypassEnabled(pawn)
@@ -393,12 +387,12 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
         internal static void SetApparelBypassEnabled(Pawn pawn, bool enabled)
         {
-            if (!IsEligiblePawn(pawn) || Current.Game == null)
+            if (!IsEligiblePawn(pawn))
             {
                 return;
             }
 
-            PawnBypassStateComponent stateComponent = Current.Game.GetComponent<PawnBypassStateComponent>();
+            PawnBypassStateComponent stateComponent = GetStateComponent();
             if (stateComponent != null)
             {
                 stateComponent.SetApparelBypassEnabled(pawn, enabled);
@@ -407,16 +401,22 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
         internal static void SetWeaponBypassEnabled(Pawn pawn, bool enabled)
         {
-            if (!IsEligiblePawn(pawn) || Current.Game == null)
+            if (!IsEligiblePawn(pawn))
             {
                 return;
             }
 
-            PawnBypassStateComponent stateComponent = Current.Game.GetComponent<PawnBypassStateComponent>();
+            PawnBypassStateComponent stateComponent = GetStateComponent();
             if (stateComponent != null)
             {
                 stateComponent.SetWeaponBypassEnabled(pawn, enabled);
             }
+        }
+
+        private static PawnBypassStateComponent GetStateComponent()
+        {
+            Game game = Current.Game;
+            return game != null ? game.GetComponent<PawnBypassStateComponent>() : null;
         }
 
         internal static IEnumerable<Gizmo> AppendGizmo(IEnumerable<Gizmo> source, Gizmo gizmo)
