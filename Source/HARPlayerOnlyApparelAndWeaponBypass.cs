@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using AlienRace;
+using HarmonyLib;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -204,124 +203,8 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
         {
             try
             {
-                Type patchType = typeof(Bootstrap);
-                Assembly harmonyAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => string.Equals(a.GetName().Name, "0Harmony", StringComparison.Ordinal));
-                if (harmonyAssembly == null)
-                {
-                    throw new InvalidOperationException("0Harmony assembly is not loaded.");
-                }
-
-                Type harmonyType = harmonyAssembly.GetType("HarmonyLib.Harmony", false) ??
-                    harmonyAssembly.GetType("Harmony.HarmonyInstance", true);
-                Type harmonyMethodType = harmonyAssembly.GetType("HarmonyLib.HarmonyMethod", false) ??
-                    harmonyAssembly.GetType("Harmony.HarmonyMethod", true);
-
-                object harmony = CreateHarmonyInstance(harmonyType, "zades.harplayeronlyapparelandweaponbypass");
-                MethodInfo patchMethod = harmonyType.GetMethod("Patch", BindingFlags.Public | BindingFlags.Instance);
-                if (patchMethod == null)
-                {
-                    throw new MissingMethodException(harmonyType.FullName, "Patch");
-                }
-
-                ConstructorInfo harmonyMethodCtor = harmonyMethodType.GetConstructor(new[] { typeof(MethodInfo) });
-                if (harmonyMethodCtor == null)
-                {
-                    throw new MissingMethodException(harmonyMethodType.FullName, ".ctor(MethodInfo)");
-                }
-
-                MethodInfo harApparelScoreMethod = GetRequiredNamedMethod(
-                    typeof(HarmonyPatches),
-                    "ApparelScoreGainPostFix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                MethodInfo ourApparelScorePrefix = GetRequiredMethod(
-                    patchType,
-                    "ApparelScoreGainPostFixPrefix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Pawn));
-                MethodInfo hasPartsToWearMethod = GetRequiredMethod(
-                    typeof(ApparelUtility),
-                    "HasPartsToWear",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Pawn),
-                    typeof(ThingDef));
-                MethodInfo ourHasPartsToWearPostfix = GetRequiredMethod(
-                    patchType,
-                    "HasPartsToWearPostfix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Pawn),
-                    typeof(ThingDef),
-                    typeof(bool).MakeByRefType());
-                MethodInfo harPawnCanWearPostfixMethod = GetRequiredNamedMethod(
-                    typeof(HarmonyPatches),
-                    "PawnCanWearPostfix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                MethodInfo ourHarPawnCanWearPostfixPrefix = GetRequiredMethod(
-                    patchType,
-                    "HarPawnCanWearPostfixPrefix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Pawn));
-                MethodInfo harCanEquipPostfixMethod = GetRequiredNamedMethod(
-                    typeof(HarmonyPatches),
-                    "CanEquipPostfix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                MethodInfo ourHarCanEquipPostfixPrefix = GetRequiredMethod(
-                    patchType,
-                    "HarCanEquipPostfixPrefix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Thing),
-                    typeof(Pawn));
-                MethodInfo pawnGetGizmosMethod = GetRequiredMethod(
-                    typeof(Pawn),
-                    "GetGizmos",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                MethodInfo ourPawnGetGizmosPostfix = GetRequiredMethod(
-                    patchType,
-                    "PawnGetGizmosPostfix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Pawn),
-                    typeof(IEnumerable<Gizmo>).MakeByRefType());
-
-                PatchMethod(
-                    harmony,
-                    patchMethod,
-                    harApparelScoreMethod,
-                    prefix: harmonyMethodCtor.Invoke(new object[] { ourApparelScorePrefix }),
-                    postfix: null,
-                    transpiler: null,
-                    finalizer: null);
-                PatchMethod(
-                    harmony,
-                    patchMethod,
-                    hasPartsToWearMethod,
-                    prefix: null,
-                    postfix: harmonyMethodCtor.Invoke(new object[] { ourHasPartsToWearPostfix }),
-                    transpiler: null,
-                    finalizer: null);
-                PatchMethod(
-                    harmony,
-                    patchMethod,
-                    harPawnCanWearPostfixMethod,
-                    prefix: harmonyMethodCtor.Invoke(new object[] { ourHarPawnCanWearPostfixPrefix }),
-                    postfix: null,
-                    transpiler: null,
-                    finalizer: null);
-                PatchMethod(
-                    harmony,
-                    patchMethod,
-                    harCanEquipPostfixMethod,
-                    prefix: harmonyMethodCtor.Invoke(new object[] { ourHarCanEquipPostfixPrefix }),
-                    postfix: null,
-                    transpiler: null,
-                    finalizer: null);
-                PatchMethod(
-                    harmony,
-                    patchMethod,
-                    pawnGetGizmosMethod,
-                    prefix: null,
-                    postfix: harmonyMethodCtor.Invoke(new object[] { ourPawnGetGizmosPostfix }),
-                    transpiler: null,
-                    finalizer: null);
+                var harmony = new Harmony("zades.harplayeronlyapparelandweaponbypass");
+                harmony.PatchAll(Assembly.GetExecutingAssembly());
                 Log.Message("[HARPlayerOnlyApparelAndWeaponBypass] Applied patches.");
             }
             catch (Exception ex)
@@ -329,108 +212,82 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                 Log.Error("[HARPlayerOnlyApparelAndWeaponBypass] Failed to apply patches: " + ex);
             }
         }
+    }
 
-        private static object CreateHarmonyInstance(Type harmonyType, string id)
+    [HarmonyPatch]
+    internal static class HarApparelScoreGainPostFixPatch
+    {
+        private static MethodBase TargetMethod()
         {
-            ConstructorInfo ctor = harmonyType.GetConstructor(new[] { typeof(string) });
-            if (ctor != null)
-            {
-                return ctor.Invoke(new object[] { id });
-            }
-
-            MethodInfo createMethod = harmonyType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-            if (createMethod != null)
-            {
-                return createMethod.Invoke(null, new object[] { id });
-            }
-
-            throw new MissingMethodException(harmonyType.FullName, ".ctor(string)/Create(string)");
+                return AccessTools.Method(
+                typeof(AlienRace.HarmonyPatches),
+                "ApparelScoreGainPostFix",
+                new[] { typeof(Pawn), typeof(Apparel), typeof(float).MakeByRefType() });
         }
 
-        private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags flags, params Type[] parameterTypes)
-        {
-            MethodInfo method = type.GetMethod(name, flags, null, parameterTypes, null);
-            if (method == null)
-            {
-                throw new MissingMethodException(type.FullName, name);
-            }
-
-            return method;
-        }
-
-        private static MethodInfo GetRequiredNamedMethod(Type type, string name, BindingFlags flags)
-        {
-            MethodInfo[] methods = type.GetMethods(flags)
-                .Where(method => string.Equals(method.Name, name, StringComparison.Ordinal))
-                .ToArray();
-            if (methods.Length == 0)
-            {
-                throw new MissingMethodException(type.FullName, name);
-            }
-            if (methods.Length > 1)
-            {
-                throw new AmbiguousMatchException(type.FullName + "." + name);
-            }
-
-            return methods[0];
-        }
-
-        private static void PatchMethod(
-            object harmony,
-            MethodInfo patchMethod,
-            MethodBase original,
-            object prefix,
-            object postfix,
-            object transpiler,
-            object finalizer)
-        {
-            if (original == null)
-            {
-                throw new ArgumentNullException("original");
-            }
-
-            var parameterCount = patchMethod.GetParameters().Length;
-            if (parameterCount == 4)
-            {
-                patchMethod.Invoke(harmony, new[] { original, prefix, postfix, transpiler });
-                return;
-            }
-
-            if (parameterCount == 5)
-            {
-                patchMethod.Invoke(harmony, new[] { original, prefix, postfix, transpiler, finalizer });
-                return;
-            }
-
-            throw new NotSupportedException("Unexpected Harmony.Patch signature with " + parameterCount + " parameters.");
-        }
-
-        public static bool ApparelScoreGainPostFixPrefix(Pawn pawn)
+        [HarmonyPrefix]
+        private static bool Prefix(Pawn pawn)
         {
             return !Helpers.IsApparelManagedPawn(pawn);
         }
+    }
 
-        public static bool HarPawnCanWearPostfixPrefix(Pawn pawn)
-        {
-            return !Helpers.IsApparelManagedPawn(pawn);
-        }
-
-        public static void HasPartsToWearPostfix(Pawn p, ThingDef apparel, ref bool __result)
+    [HarmonyPatch(typeof(ApparelUtility), "HasPartsToWear", new[] { typeof(Pawn), typeof(ThingDef) })]
+    internal static class HasPartsToWearPatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix(Pawn p, ThingDef apparel, ref bool __result)
         {
             if (!__result && Helpers.ShouldBypassApparelChecks(p, apparel))
             {
                 __result = true;
             }
         }
+    }
 
-        public static bool HarCanEquipPostfixPrefix(Thing thing, Pawn pawn)
+    [HarmonyPatch]
+    internal static class HarPawnCanWearPostfixPatch
+    {
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(AlienRace.HarmonyPatches),
+                "PawnCanWearPostfix",
+                new[] { typeof(ApparelProperties), typeof(Pawn), typeof(bool).MakeByRefType() });
+        }
+
+        [HarmonyPrefix]
+        private static bool Prefix(Pawn pawn)
+        {
+            return !Helpers.IsApparelManagedPawn(pawn);
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class HarCanEquipPostfixPatch
+    {
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(AlienRace.HarmonyPatches),
+                "CanEquipPostfix",
+                new[] { typeof(bool).MakeByRefType(), typeof(Thing), typeof(Pawn), typeof(string).MakeByRefType() });
+        }
+
+        [HarmonyPrefix]
+        private static bool Prefix(Thing thing, Pawn pawn)
         {
             ThingDef thingDef = thing != null ? thing.def : null;
             return !Helpers.ShouldBypassApparelChecks(pawn, thingDef) &&
                 !Helpers.ShouldBypassWeaponChecks(pawn, thingDef);
         }
+    }
 
-        public static void PawnGetGizmosPostfix(Pawn __instance, ref IEnumerable<Gizmo> __result)
+    [HarmonyPatch(typeof(Pawn), "GetGizmos")]
+    internal static class PawnGetGizmosPatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix(Pawn __instance, ref IEnumerable<Gizmo> __result)
         {
             if (!Helpers.IsEligiblePawn(__instance) || __instance.Spawned == false)
             {
