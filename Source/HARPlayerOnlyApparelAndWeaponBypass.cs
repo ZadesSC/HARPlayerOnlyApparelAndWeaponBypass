@@ -6,23 +6,22 @@ using AlienRace;
 using RimWorld;
 using UnityEngine;
 using Verse;
-using Verse.AI;
 
-namespace PlayerOnlyApparelBypass
+namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 {
-    public sealed class PlayerOnlyApparelBypassMod : Mod
+    public sealed class HARPlayerOnlyApparelAndWeaponBypassMod : Mod
     {
-        internal static PlayerOnlyApparelBypassSettings Settings;
+        internal static HARPlayerOnlyApparelAndWeaponBypassSettings Settings;
 
-        public PlayerOnlyApparelBypassMod(ModContentPack content)
+        public HARPlayerOnlyApparelAndWeaponBypassMod(ModContentPack content)
             : base(content)
         {
-            Settings = GetSettings<PlayerOnlyApparelBypassSettings>();
+            Settings = GetSettings<HARPlayerOnlyApparelAndWeaponBypassSettings>();
         }
 
         public override string SettingsCategory()
         {
-            return "Player-Only Apparel Bypass";
+            return "HAR Player-Only Apparel and Weapon Bypass";
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -68,7 +67,7 @@ namespace PlayerOnlyApparelBypass
         }
     }
 
-    public sealed class PlayerOnlyApparelBypassSettings : ModSettings
+    public sealed class HARPlayerOnlyApparelAndWeaponBypassSettings : ModSettings
     {
         public bool defaultApparelBypassEnabled = true;
         public bool showApparelGizmo = true;
@@ -218,7 +217,7 @@ namespace PlayerOnlyApparelBypass
                 Type harmonyMethodType = harmonyAssembly.GetType("HarmonyLib.HarmonyMethod", false) ??
                     harmonyAssembly.GetType("Harmony.HarmonyMethod", true);
 
-                object harmony = CreateHarmonyInstance(harmonyType, "local.playeronlyapparelbypass");
+                object harmony = CreateHarmonyInstance(harmonyType, "zades.harplayeronlyapparelandweaponbypass");
                 MethodInfo patchMethod = harmonyType.GetMethod("Patch", BindingFlags.Public | BindingFlags.Instance);
                 if (patchMethod == null)
                 {
@@ -287,18 +286,6 @@ namespace PlayerOnlyApparelBypass
                     typeof(string).MakeByRefType(),
                     typeof(bool),
                     typeof(bool).MakeByRefType());
-                MethodInfo tryGiveJobMethod = GetRequiredMethod(
-                    typeof(JobGiver_OptimizeApparel),
-                    "TryGiveJob",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
-                    typeof(Pawn));
-                MethodInfo ourTryGiveJobPrefix = GetRequiredMethod(
-                    patchType,
-                    "TryGiveJobPrefix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(JobGiver_OptimizeApparel),
-                    typeof(Pawn),
-                    typeof(Job).MakeByRefType());
                 MethodInfo pawnGetGizmosMethod = GetRequiredMethod(
                     typeof(Pawn),
                     "GetGizmos",
@@ -345,24 +332,16 @@ namespace PlayerOnlyApparelBypass
                 PatchMethod(
                     harmony,
                     patchMethod,
-                    tryGiveJobMethod,
-                    prefix: harmonyMethodCtor.Invoke(new object[] { ourTryGiveJobPrefix }),
-                    postfix: null,
-                    transpiler: null,
-                    finalizer: null);
-                PatchMethod(
-                    harmony,
-                    patchMethod,
                     pawnGetGizmosMethod,
                     prefix: null,
                     postfix: harmonyMethodCtor.Invoke(new object[] { ourPawnGetGizmosPostfix }),
                     transpiler: null,
                     finalizer: null);
-                Log.Message("[PlayerOnlyApparelBypass] Applied patches.");
+                Log.Message("[HARPlayerOnlyApparelAndWeaponBypass] Applied patches.");
             }
             catch (Exception ex)
             {
-                Log.Error("[PlayerOnlyApparelBypass] Failed to apply patches: " + ex);
+                Log.Error("[HARPlayerOnlyApparelAndWeaponBypass] Failed to apply patches: " + ex);
             }
         }
 
@@ -385,18 +364,13 @@ namespace PlayerOnlyApparelBypass
 
         private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags flags, params Type[] parameterTypes)
         {
-            MethodInfo method = FindMethod(type, name, flags, parameterTypes);
+            MethodInfo method = type.GetMethod(name, flags, null, parameterTypes, null);
             if (method == null)
             {
                 throw new MissingMethodException(type.FullName, name);
             }
 
             return method;
-        }
-
-        private static MethodInfo FindMethod(Type type, string name, BindingFlags flags, params Type[] parameterTypes)
-        {
-            return type.GetMethod(name, flags, null, parameterTypes, null);
         }
 
         private static void PatchMethod(
@@ -494,17 +468,6 @@ namespace PlayerOnlyApparelBypass
             __result = true;
         }
 
-        public static bool TryGiveJobPrefix(JobGiver_OptimizeApparel __instance, Pawn pawn, ref Job __result)
-        {
-            if (!Helpers.IsApparelManagedPawn(pawn))
-            {
-                return true;
-            }
-
-            __result = ManagedApparelOptimizer.TryGiveManagedJob(pawn);
-            return false;
-        }
-
         public static void PawnGetGizmosPostfix(Pawn __instance, ref IEnumerable<Gizmo> __result)
         {
             if (!Helpers.IsEligiblePawn(__instance) || __instance.Spawned == false)
@@ -512,12 +475,12 @@ namespace PlayerOnlyApparelBypass
                 return;
             }
 
-            if (Helpers.ShouldShowApparelGizmo(__instance))
+            if (Helpers.ShouldShowApparelGizmo())
             {
                 __result = Helpers.AppendGizmo(__result, Helpers.MakeApparelBypassGizmo(__instance));
             }
 
-            if (Helpers.ShouldShowWeaponGizmo(__instance))
+            if (Helpers.ShouldShowWeaponGizmo())
             {
                 __result = Helpers.AppendGizmo(__result, Helpers.MakeWeaponBypassGizmo(__instance));
             }
@@ -530,7 +493,7 @@ namespace PlayerOnlyApparelBypass
         {
             get
             {
-                return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.defaultApparelBypassEnabled;
+                return HARPlayerOnlyApparelAndWeaponBypassMod.Settings == null || HARPlayerOnlyApparelAndWeaponBypassMod.Settings.defaultApparelBypassEnabled;
             }
         }
 
@@ -538,7 +501,7 @@ namespace PlayerOnlyApparelBypass
         {
             get
             {
-                return PlayerOnlyApparelBypassMod.Settings != null && PlayerOnlyApparelBypassMod.Settings.defaultWeaponBypassEnabled;
+                return HARPlayerOnlyApparelAndWeaponBypassMod.Settings != null && HARPlayerOnlyApparelAndWeaponBypassMod.Settings.defaultWeaponBypassEnabled;
             }
         }
 
@@ -567,14 +530,14 @@ namespace PlayerOnlyApparelBypass
             return IsWeaponManagedPawn(pawn) && thingDef != null && thingDef.IsWeapon;
         }
 
-        internal static bool ShouldShowApparelGizmo(Pawn pawn)
+        internal static bool ShouldShowApparelGizmo()
         {
-            return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.showApparelGizmo;
+            return HARPlayerOnlyApparelAndWeaponBypassMod.Settings == null || HARPlayerOnlyApparelAndWeaponBypassMod.Settings.showApparelGizmo;
         }
 
-        internal static bool ShouldShowWeaponGizmo(Pawn pawn)
+        internal static bool ShouldShowWeaponGizmo()
         {
-            return PlayerOnlyApparelBypassMod.Settings == null || PlayerOnlyApparelBypassMod.Settings.showWeaponGizmo;
+            return HARPlayerOnlyApparelAndWeaponBypassMod.Settings == null || HARPlayerOnlyApparelAndWeaponBypassMod.Settings.showWeaponGizmo;
         }
 
         internal static bool GetApparelBypassEnabled(Pawn pawn)
@@ -709,182 +672,5 @@ namespace PlayerOnlyApparelBypass
                 currentState + ". Default for newly managed player colonists: " + defaultState + ".";
         }
 
-        internal static FloatMenuOption MakeWearOption(Pawn pawn, Apparel apparel)
-        {
-            Action action = () =>
-            {
-                Action takeJob = delegate
-                {
-                    ForbidUtility.SetForbidden(apparel, false, false);
-                    Job job = JobMaker.MakeJob(JobDefOf.Wear, apparel);
-                    pawn.jobs.TryTakeOrderedJob(job, JobTag.Misc, false);
-                };
-
-                var replaced = ApparelUtility.GetApparelReplacedByNewApparel(pawn, apparel);
-                if (replaced != null && ModsConfig.BiotechActive &&
-                    MechanitorUtility.TryConfirmBandwidthLossFromDroppingThing(pawn, replaced, takeJob))
-                {
-                    return;
-                }
-
-                takeJob();
-            };
-
-            var label = "ForceWear".Translate(apparel.LabelShort, apparel) + " [Ignore race restriction]";
-            var option = new FloatMenuOption(label, action, MenuOptionPriority.High, null, apparel);
-            return FloatMenuUtility.DecoratePrioritizedTask(option, pawn, apparel, "ReservedBy");
-        }
-    }
-
-    public static class SkipHarOptimizerPenaltyForColonists
-    {
-        public static bool Prefix(Pawn pawn)
-        {
-            return !Helpers.IsApparelManagedPawn(pawn);
-        }
-    }
-
-    public static class ManagedApparelOptimizer
-    {
-        private static void SetNextOptimizeTick(Pawn pawn)
-        {
-            if (pawn != null && pawn.mindState != null)
-            {
-                pawn.mindState.nextApparelOptimizeTick = Find.TickManager.TicksGame + Rand.Range(6000, 9000);
-            }
-        }
-
-        public static Job TryGiveManagedJob(Pawn pawn)
-        {
-            if (pawn == null || pawn.outfits == null)
-            {
-                return null;
-            }
-
-            if (pawn.IsMutant && pawn.mutant != null && pawn.mutant.Def != null && pawn.mutant.Def.disableApparel)
-            {
-                return null;
-            }
-
-            if (QuestUtility.IsQuestLodger(pawn))
-            {
-                return null;
-            }
-
-            ApparelPolicy policy = pawn.outfits.CurrentApparelPolicy;
-            if (policy == null)
-            {
-                return null;
-            }
-
-            List<Apparel> wornApparel = pawn.apparel != null ? pawn.apparel.WornApparel : null;
-            if (wornApparel != null)
-            {
-                for (int i = wornApparel.Count - 1; i >= 0; i--)
-                {
-                    Apparel worn = wornApparel[i];
-                    bool inVacuum = pawn.MapHeld != null && pawn.MapHeld.Biome != null && pawn.MapHeld.Biome.inVacuum &&
-                        VacuumUtility.GetVacuum(pawn.Position, pawn.MapHeld) >= 0.5f &&
-                        worn.GetStatValue(StatDefOf.VacuumResistance, true, 60) > 0f;
-                    if (inVacuum)
-                    {
-                        continue;
-                    }
-
-                    if (!policy.filter.Allows(worn) &&
-                        pawn.outfits.forcedHandler.AllowedToAutomaticallyDrop(worn) &&
-                        !pawn.apparel.IsLocked(worn))
-                    {
-                        Job removeJob = JobMaker.MakeJob(JobDefOf.RemoveApparel, worn);
-                        removeJob.haulDroppedApparel = true;
-                        return removeJob;
-                    }
-                }
-            }
-
-            List<float> wornScores = new List<float>();
-            if (wornApparel != null)
-            {
-                for (int i = 0; i < wornApparel.Count; i++)
-                {
-                    wornScores.Add(JobGiver_OptimizeApparel.ApparelScoreRaw(pawn, wornApparel[i]));
-                }
-            }
-
-            Apparel best = null;
-            float bestScore = 0f;
-            List<Thing> things = pawn.Map != null ? pawn.Map.listerThings.ThingsInGroup(ThingRequestGroup.Apparel) : null;
-            if (things != null)
-            {
-                for (int i = 0; i < things.Count; i++)
-                {
-                    Apparel apparel = things[i] as Apparel;
-                    if (apparel == null)
-                    {
-                        continue;
-                    }
-
-                    if (!policy.filter.Allows(apparel) ||
-                        ForbidUtility.IsForbidden(apparel, pawn) ||
-                        FireUtility.IsBurning(apparel))
-                    {
-                        continue;
-                    }
-
-                    float score = JobGiver_OptimizeApparel.ApparelScoreGain(pawn, apparel, wornScores);
-                    if (score < 0.05f || score < bestScore)
-                    {
-                        continue;
-                    }
-
-                    if (CompBiocodable.IsBiocoded(apparel) && !CompBiocodable.IsBiocodedFor(apparel, pawn))
-                    {
-                        continue;
-                    }
-
-                    if (!ApparelUtility.HasPartsToWear(pawn, apparel.def))
-                    {
-                        continue;
-                    }
-
-                    LocalTargetInfo target = apparel;
-                    IApparelSource source = apparel.ParentHolder as IApparelSource;
-                    Thing sourceThing = source as Thing;
-                    if (source != null && sourceThing != null)
-                    {
-                        if (!source.ApparelSourceEnabled)
-                        {
-                            continue;
-                        }
-
-                        target = sourceThing;
-                    }
-
-                    if (!ReservationUtility.CanReserveAndReach(
-                        pawn,
-                        target,
-                        PathEndMode.OnCell,
-                        DangerUtility.NormalMaxDanger(pawn),
-                        1,
-                        -1,
-                        null,
-                        false))
-                    {
-                        continue;
-                    }
-
-                    best = apparel;
-                    bestScore = score;
-                }
-            }
-
-            if (best == null)
-            {
-                SetNextOptimizeTick(pawn);
-                return null;
-            }
-
-            return JobMaker.MakeJob(JobDefOf.Wear, best);
-        }
     }
 }
