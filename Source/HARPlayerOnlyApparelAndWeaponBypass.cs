@@ -230,13 +230,10 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                     throw new MissingMethodException(harmonyMethodType.FullName, ".ctor(MethodInfo)");
                 }
 
-                MethodInfo harApparelScoreMethod = GetRequiredMethod(
+                MethodInfo harApparelScoreMethod = GetRequiredNamedMethod(
                     typeof(HarmonyPatches),
                     "ApparelScoreGainPostFix",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Pawn),
-                    typeof(Apparel),
-                    typeof(float).MakeByRefType());
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
                 MethodInfo ourApparelScorePrefix = GetRequiredMethod(
                     patchType,
                     "ApparelScoreGainPostFixPrefix",
@@ -255,20 +252,15 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                     typeof(Pawn),
                     typeof(ThingDef),
                     typeof(bool).MakeByRefType());
-                MethodInfo apparelPawnCanWearMethod = GetRequiredMethod(
-                    typeof(Apparel),
-                    "PawnCanWear",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
-                    typeof(Pawn),
-                    typeof(bool));
-                MethodInfo ourApparelPawnCanWearPostfix = GetRequiredMethod(
+                MethodInfo harPawnCanWearPostfixMethod = GetRequiredNamedMethod(
+                    typeof(HarmonyPatches),
+                    "PawnCanWearPostfix",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                MethodInfo ourHarPawnCanWearPostfixPrefix = GetRequiredMethod(
                     patchType,
-                    "ApparelPawnCanWearPostfix",
+                    "HarPawnCanWearPostfixPrefix",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
-                    typeof(Apparel),
-                    typeof(Pawn),
-                    typeof(bool),
-                    typeof(bool).MakeByRefType());
+                    typeof(Pawn));
                 MethodInfo canEquipMethod = GetRequiredMethod(
                     typeof(EquipmentUtility),
                     "CanEquip",
@@ -316,9 +308,9 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
                 PatchMethod(
                     harmony,
                     patchMethod,
-                    apparelPawnCanWearMethod,
-                    prefix: null,
-                    postfix: harmonyMethodCtor.Invoke(new object[] { ourApparelPawnCanWearPostfix }),
+                    harPawnCanWearPostfixMethod,
+                    prefix: harmonyMethodCtor.Invoke(new object[] { ourHarPawnCanWearPostfixPrefix }),
+                    postfix: null,
                     transpiler: null,
                     finalizer: null);
                 PatchMethod(
@@ -373,6 +365,23 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             return method;
         }
 
+        private static MethodInfo GetRequiredNamedMethod(Type type, string name, BindingFlags flags)
+        {
+            MethodInfo[] methods = type.GetMethods(flags)
+                .Where(method => string.Equals(method.Name, name, StringComparison.Ordinal))
+                .ToArray();
+            if (methods.Length == 0)
+            {
+                throw new MissingMethodException(type.FullName, name);
+            }
+            if (methods.Length > 1)
+            {
+                throw new AmbiguousMatchException(type.FullName + "." + name);
+            }
+
+            return methods[0];
+        }
+
         private static void PatchMethod(
             object harmony,
             MethodInfo patchMethod,
@@ -408,17 +417,14 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             return !Helpers.IsApparelManagedPawn(pawn);
         }
 
+        public static bool HarPawnCanWearPostfixPrefix(Pawn pawn)
+        {
+            return !Helpers.IsApparelManagedPawn(pawn);
+        }
+
         public static void HasPartsToWearPostfix(Pawn p, ThingDef apparel, ref bool __result)
         {
             if (!__result && Helpers.ShouldBypassApparelChecks(p, apparel))
-            {
-                __result = true;
-            }
-        }
-
-        public static void ApparelPawnCanWearPostfix(Apparel __instance, Pawn pawn, bool ignoreGender, ref bool __result)
-        {
-            if (!__result && Helpers.ShouldBypassApparelChecks(pawn, __instance != null ? __instance.def : null))
             {
                 __result = true;
             }
