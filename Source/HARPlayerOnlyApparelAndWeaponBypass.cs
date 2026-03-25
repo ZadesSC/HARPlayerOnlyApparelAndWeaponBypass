@@ -216,19 +216,6 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
         }
     }
 
-    [HarmonyPatch(typeof(ApparelUtility), "HasPartsToWear", new[] { typeof(Pawn), typeof(ThingDef) })]
-    internal static class HasPartsToWearPatch
-    {
-        [HarmonyPostfix]
-        private static void Postfix(Pawn p, ThingDef apparel, ref bool __result)
-        {
-            if (!__result && Helpers.ShouldBypassApparelChecks(p, apparel))
-            {
-                __result = true;
-            }
-        }
-    }
-
     [HarmonyPatch]
     internal static class HarPawnCanWearPostfixPatch
     {
