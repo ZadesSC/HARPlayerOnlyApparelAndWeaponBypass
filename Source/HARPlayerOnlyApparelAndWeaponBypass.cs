@@ -293,6 +293,12 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
     internal static class Helpers
     {
+        private static readonly Texture2D ApparelBypassIcon =
+            ContentFinder<Texture2D>.Get("UI/Commands/HAR_ApparelBypass");
+
+        private static readonly Texture2D WeaponBypassIcon =
+            ContentFinder<Texture2D>.Get("UI/Commands/HAR_WeaponBypass");
+
         internal static bool DefaultApparelBypassEnabled
         {
             get
@@ -428,7 +434,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             {
                 defaultLabel = "HAR apparel bypass",
                 defaultDesc = BuildApparelGizmoDescription(pawn),
-                icon = TexCommand.DesirePower,
+                icon = ApparelBypassIcon,
                 isActive = delegate
                 {
                     return GetApparelBypassEnabled(pawn);
@@ -447,7 +453,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             {
                 defaultLabel = "HAR weapon bypass",
                 defaultDesc = BuildWeaponGizmoDescription(pawn),
-                icon = TexCommand.DesirePower,
+                icon = WeaponBypassIcon,
                 isActive = delegate
                 {
                     return GetWeaponBypassEnabled(pawn);
