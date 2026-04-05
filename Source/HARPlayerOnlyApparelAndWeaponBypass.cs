@@ -76,9 +76,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
 
         public override void ExposeData()
         {
-            Scribe_Values.Look(ref defaultApparelBypassEnabled, "defaultBypassEnabled", true);
             Scribe_Values.Look(ref defaultApparelBypassEnabled, "defaultApparelBypassEnabled", true);
-            Scribe_Values.Look(ref showApparelGizmo, "showPawnGizmo", true);
             Scribe_Values.Look(ref showApparelGizmo, "showApparelGizmo", true);
             Scribe_Values.Look(ref defaultWeaponBypassEnabled, "defaultWeaponBypassEnabled", false);
             Scribe_Values.Look(ref showWeaponGizmo, "showWeaponGizmo", true);
