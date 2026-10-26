@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "slug": "HARPlayerOnlyApparelAndWeaponBypass",
+  "defaultBranch": "master",
+  "supportedVersions": [
+    "1.6"
+  ],
+  "assemblyMode": "committed",
+  "needsDotnet": false,
+  "assemblies": [
+    "1.6/Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll"
+  ],
+  "sourceGlobs": [
+    "Source/**/*.cs",
+    "Source/**/*.csproj"
+  ],
+  "include": [
+    "About",
+    "1.6",
+    "Textures",
+    "LoadFolders.xml",
+    "LICENSE",
+    "README.md"
+  ],
+  "commands": [
+    [
+      "bash",
+      "Tests/check_contentfinder_threading.sh"
+    ]
+  ],
+  "dependencyNotes": [
+    "Harmony (brrainz.harmony); required separately, not bundled.",
+    "Humanoid Alien Races (erdelf.HumanoidAlienRaces); required separately, not bundled."
+  ]
+}
