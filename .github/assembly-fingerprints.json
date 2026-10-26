@@ -1,0 +1,10 @@
+{
+  "assemblies": {
+    "1.6/Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll": "73223a6c033d24f168756aad400312370c271532ffad11c8e56b196e33cbbf8a"
+  },
+  "provenance": "Committed source/assembly baseline; not proof of compilation. Refresh only after rebuilding and validating the assemblies.",
+  "schemaVersion": 1,
+  "sources": {
+    "Source/HARPlayerOnlyApparelAndWeaponBypass.cs": "23468df67b14a7c4c8c28d2ff84ad354b016cd77ac149f01f0b67bf4d84d18ae"
+  }
+}
