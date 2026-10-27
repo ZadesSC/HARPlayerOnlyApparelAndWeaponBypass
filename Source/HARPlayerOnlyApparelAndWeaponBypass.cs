@@ -185,6 +185,8 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
         {
             try
             {
+                BypassTex.Preload();
+
                 var harmony = new Harmony("zades.harplayeronlyapparelandweaponbypass");
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
                 Log.Message("[HARPlayerOnlyApparelAndWeaponBypass] Applied patches.");
@@ -289,14 +291,39 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
         }
     }
 
+    [StaticConstructorOnStartup]
+    internal static class BypassTex
+    {
+        internal static Texture2D ApparelBypassIcon { get; private set; }
+
+        internal static Texture2D WeaponBypassIcon { get; private set; }
+
+        static BypassTex()
+        {
+            Preload();
+        }
+
+        internal static void Preload()
+        {
+            if (!UnityData.IsInMainThread)
+            {
+                return;
+            }
+
+            if (ApparelBypassIcon == null)
+            {
+                ApparelBypassIcon = ContentFinder<Texture2D>.Get("UI/Commands/HAR_ApparelBypass");
+            }
+
+            if (WeaponBypassIcon == null)
+            {
+                WeaponBypassIcon = ContentFinder<Texture2D>.Get("UI/Commands/HAR_WeaponBypass");
+            }
+        }
+    }
+
     internal static class Helpers
     {
-        private static readonly Texture2D ApparelBypassIcon =
-            ContentFinder<Texture2D>.Get("UI/Commands/HAR_ApparelBypass");
-
-        private static readonly Texture2D WeaponBypassIcon =
-            ContentFinder<Texture2D>.Get("UI/Commands/HAR_WeaponBypass");
-
         internal static bool DefaultApparelBypassEnabled
         {
             get
@@ -432,7 +459,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             {
                 defaultLabel = "HAR apparel bypass",
                 defaultDesc = BuildApparelGizmoDescription(pawn),
-                icon = ApparelBypassIcon,
+                icon = BypassTex.ApparelBypassIcon,
                 isActive = delegate
                 {
                     return GetApparelBypassEnabled(pawn);
@@ -451,7 +478,7 @@ namespace Zades.HARPlayerOnlyApparelAndWeaponBypass
             {
                 defaultLabel = "HAR weapon bypass",
                 defaultDesc = BuildWeaponGizmoDescription(pawn),
-                icon = WeaponBypassIcon,
+                icon = BypassTex.WeaponBypassIcon,
                 isActive = delegate
                 {
                     return GetWeaponBypassEnabled(pawn);

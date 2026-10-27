@@ -1,10 +1,10 @@
 {
   "assemblies": {
-    "1.6/Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll": "73223a6c033d24f168756aad400312370c271532ffad11c8e56b196e33cbbf8a"
+    "Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll": "53dc22d55767425dde5cf5919e7d6a6d4872eb8904b6a8c20664ebb9e27fae15"
   },
   "provenance": "Committed source/assembly baseline; not proof of compilation. Refresh only after rebuilding and validating the assemblies.",
   "schemaVersion": 1,
   "sources": {
-    "Source/HARPlayerOnlyApparelAndWeaponBypass.cs": "23468df67b14a7c4c8c28d2ff84ad354b016cd77ac149f01f0b67bf4d84d18ae"
+    "Source/HARPlayerOnlyApparelAndWeaponBypass.cs": "4b9cb000df6b3254564963abac3e1d09ea74cbcfa36daf674e4185c5537a0207"
   }
 }
