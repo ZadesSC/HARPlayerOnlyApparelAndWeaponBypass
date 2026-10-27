@@ -1,8 +1,12 @@
 # HAR Player-Only Apparel and Weapon Bypass
 
-RimWorld 1.6 mod for [Humanoid Alien Races (HAR)](https://steamcommunity.com/sharedfiles/filedetails/?id=839005762).
+RimWorld 1.6 and 1.7 mod for [Humanoid Alien Races (HAR)](https://steamcommunity.com/sharedfiles/filedetails/?id=839005762).
 
 This mod lets player-controlled colonists bypass HAR apparel and weapon race restrictions on a per-pawn basis, while leaving NPC behavior and gear generation alone.
+
+Both game versions load the same DLL from `Assemblies/` and share `Textures/`.
+`LoadFolders.xml` explicitly selects the root folder for 1.6 and 1.7. When updating,
+replace the old mod folder so the previous `1.6/Assemblies` copy does not remain.
 
 ## Features
 
@@ -19,7 +23,7 @@ This mod lets player-controlled colonists bypass HAR apparel and weapon race res
 Actions → **Build dev package** validates pushes and pull requests to `master`
 and `dev`, and supports manual runs. Download its artifact and extract the mod
 ZIP inside it; replace your previous mod folder when installing. Packages support
-RimWorld 1.6 and require Harmony and Humanoid Alien Races installed separately.
+RimWorld 1.6 and 1.7. Install Harmony and Humanoid Alien Races separately.
 
 Actions → **Create release** publishes a stable release from `master`, or a
 prerelease from `master` or `dev`. Leave the version blank to allocate the next

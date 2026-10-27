@@ -1,6 +1,6 @@
 {
   "assemblies": {
-    "1.6/Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll": "53dc22d55767425dde5cf5919e7d6a6d4872eb8904b6a8c20664ebb9e27fae15"
+    "Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll": "53dc22d55767425dde5cf5919e7d6a6d4872eb8904b6a8c20664ebb9e27fae15"
   },
   "provenance": "Committed source/assembly baseline; not proof of compilation. Refresh only after rebuilding and validating the assemblies.",
   "schemaVersion": 1,
