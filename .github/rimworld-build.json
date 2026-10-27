@@ -3,12 +3,13 @@
   "slug": "HARPlayerOnlyApparelAndWeaponBypass",
   "defaultBranch": "master",
   "supportedVersions": [
-    "1.6"
+    "1.6",
+    "1.7"
   ],
   "assemblyMode": "committed",
   "needsDotnet": false,
   "assemblies": [
-    "1.6/Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll"
+    "Assemblies/HARPlayerOnlyApparelAndWeaponBypass.dll"
   ],
   "sourceGlobs": [
     "Source/**/*.cs",
@@ -16,7 +17,7 @@
   ],
   "include": [
     "About",
-    "1.6",
+    "Assemblies",
     "Textures",
     "LoadFolders.xml",
     "LICENSE",

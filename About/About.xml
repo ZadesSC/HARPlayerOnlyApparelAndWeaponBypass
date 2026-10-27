@@ -4,6 +4,7 @@
   <author>Zades</author>
   <supportedVersions>
     <li>1.6</li>
+    <li>1.7</li>
   </supportedVersions>
   <packageId>zades.harplayeronlyapparelandweaponbypass</packageId>
   <description>Lets player-controlled colonists ignore HAR apparel and weapon race restrictions on a per-pawn basis. Includes separate default behavior settings and optional pawn gizmos for apparel and weapons, while leaving NPC gear generation unchanged.</description>
